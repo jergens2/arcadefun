@@ -31,7 +31,6 @@ const game = new Phaser.Game(config);
 
 
 function preload() {
-
     this.load.audio('boop1', 'assets/boop1.mp3');
     this.load.audio('bing1', 'assets/bing1.mp3');
     this.load.audio('gentle_bong1', 'assets/gentle_bong1.mp3');
@@ -42,7 +41,6 @@ function preload() {
     this.load.audio('bong3', 'assets/bong3.mp3');
     this.load.audio('zoop', 'assets/zoop.mp3');
     this.load.audio('explosion', 'assets/explosion3.mp3')
-
     this.load.image('bomb', 'assets/bomb2.png');
 }
 
