@@ -186,7 +186,6 @@ function createHexagonPoints(radius) {
 // Function to explode the hexagon and then remove it
 function explodeHexagon(scene, hexagon) {
     // Animate scale for explosion effect
-    // console.log(hexagon.column, hexagon.row)
     scene.tweens.add({
         targets: hexagon,
         scaleX: 0.2, // Increase size to simulate explosion
@@ -274,8 +273,7 @@ function clickHexagon(scene, hexagon) {
                 if (neighborsBombs === 0 && !neighbor.recentlyChecked) {
                     clickHexagon(scene, neighbor);
                 }
-            })
-            console.log("neighbors", neighbors)
+            });
         }
     }
     if (bombCount > 0) {
