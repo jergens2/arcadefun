@@ -46,6 +46,13 @@ function preload() {
 
 function create() {
 
+    const button = document.getElementById('restart-button');
+    button.addEventListener('click', () => {
+        const gameMenu = document.getElementById('gameMenuContainer');
+        gameMenu.style.display = 'none';
+        location.reload(); // Reload the entire page, which resets the game
+    });
+
     this.hexagons = [];
     const tileRadius = TILE_RADIUS;
     const tileBuffer = TILE_BUFFER;
@@ -125,74 +132,27 @@ function addHexagon(scene, startX, startY, row, column) {
     var hexagon;
     var isExplosive = false;
     isExplosive = Math.random() < 0.15; // 20% chance to be true
-
-
-    // scene.sound.once('decodedall', () => {
-    //     console.log('Audio is ready!');
-    //     scene.sound.play('boop');
-    // });
-
     hexagon = scene.add.graphics({ x: startX, y: startY });
     hexagon.startX = startX;
     hexagon.startY = startY;
     hexagon.row = row;
     hexagon.column = column;
-
     hexagon.isExplosive = isExplosive;
     hexagon.recentlyChecked = false;
-
     drawHexagon(hexagon, TILE_RADIUS, Phaser.Display.Color.RandomRGB().color); // Draw hexagon
     hexagon.setInteractive(new Phaser.Geom.Polygon(createHexagonPoints(TILE_RADIUS)), Phaser.Geom.Polygon.Contains);
-
-    // Handle clicks - explode and disappear
-    // hexagon.on('pointerdown', function () {
-    //     // scene.children.bringToTop(hexagon);
-    //     explodeHexagon(scene, hexagon);
-    // }, scene);
-
-
-
-    // hexagon.on('pointerover', function () {
-    //     scene.children.bringToTop(hexagon);
-
-    //     // scene.hexagons.forEach(sceneHex => {
-    //     //     if(sceneHex.column === hexagon.column){
-    //     //         // if they are the same column
-    //     //         if(sceneHex.row >= hexagon.row-1 && sceneHex.row <= hexagon.row+1){
-    //     //             explodeHexagon(scene, sceneHex);
-    //     //         }
-    //     //     }else{
-    //     //         if(sceneHex.column === hexagon.column-1 || sceneHex.column === hexagon.column+1){
-    //     //             if(sceneHex.column % 2 === 0){
-    //     //                 if(sceneHex.row >= hexagon.row && sceneHex.row <= hexagon.row+1){
-    //     //                     explodeHexagon(scene, sceneHex);
-    //     //                 }
-
-    //     //             }else{
-    //     //                 if(sceneHex.row >= hexagon.row-1 && sceneHex.row <= hexagon.row){
-    //     //                     explodeHexagon(scene, sceneHex);
-    //     //                 }
-    //     //             }
-    //     //         }
-    //     //     }
-    //     // });
-
-    //     explodeHexagon(scene, hexagon);
-    // }, scene);
-
-    // animateHexagon(scene, hexagon);
     hexagon.on('pointerdown', function () {
-        if(hexagon.isExplosive){
-
-        }else{
+        if (hexagon.isExplosive) {
+            scene.sound.play('explosion');
+            const gameMenu = document.getElementById('gameMenuContainer');
+            gameMenu.style.display = 'flex';
+        } else {
             playRandomSound(scene);
         }
         clickHexagon(scene, hexagon);
         scene.hexagons.forEach(h => h.recentlyChecked = false);
     });
     scene.hexagons.push(hexagon);
-
-
 }
 
 // Function to draw hexagons
@@ -226,7 +186,6 @@ function createHexagonPoints(radius) {
 // Function to explode the hexagon and then remove it
 function explodeHexagon(scene, hexagon) {
     // Animate scale for explosion effect
-
     // console.log(hexagon.column, hexagon.row)
     scene.tweens.add({
         targets: hexagon,
@@ -236,10 +195,7 @@ function explodeHexagon(scene, hexagon) {
         duration: 600, // Duration of explosion
         ease: 'Power2',
         onComplete: function () {
-
-
             // hexagon.destroy(); // Remove hexagon from the scene
-
             scene.tweens.add({
                 targets: hexagon,
                 scaleX: 1, // Increase size to simulate explosion
@@ -322,7 +278,6 @@ function clickHexagon(scene, hexagon) {
             console.log("neighbors", neighbors)
         }
     }
-
     if (bombCount > 0) {
         var text = scene.add.text(hexagon.startX, hexagon.startY, bombCount,
             {
@@ -331,26 +286,16 @@ function clickHexagon(scene, hexagon) {
             });
         text.setOrigin(0.5, 0.5)
     }
-
     if (hexagon.isExplosive) {
-        scene.sound.play('explosion');
-        var image = scene.add.image(hexagon.startX, hexagon.startY,  'bomb');
-
+        var image = scene.add.image(hexagon.startX, hexagon.startY, 'bomb');
         image.setOrigin(0.5, 0.5);
         image.setScale(0.5);
     }
-
-
-
 }
 
 function animateHexagon(scene, hexagon, isReversal = false) {
     const random = getRandomInRange(500, 5000);
     // const random = getRandomInRange(200,500);
-
-
-
-
     if (isReversal) {
         scene.tweens.add({
             targets: hexagon,
@@ -364,8 +309,6 @@ function animateHexagon(scene, hexagon, isReversal = false) {
             }
         });
     } else {
-
-
         scene.tweens.add({
             targets: hexagon,
             scaleX: 1, // Increase size to simulate explosion

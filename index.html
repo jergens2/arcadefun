@@ -8,22 +8,54 @@
     <style type="text/css">
         body {
             margin: 0;
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            /* position: fixed; */
+
+            height: 100vh;
+            /* Full height of the viewport */
+            position: relative;
+            /* Set parent to relative */
+            margin: 0;
+            /* Remove default margin */
         }
-        canvas{
+
+        canvas {
             border-radius: 5px;
+        }
+
+        #game-container {
+            position: fixed;
         }
     </style>
 </head>
 
-<body style="width:100%; display:flex; flex-direction: column; align-items: center;">
-<!-- 
+<body>
+    <!-- 
     <h1>My Phaser Game</h1> -->
 
-    <div id="game-container" class="game-container"></div>
+    <!-- <div id="game-container" class="game-container"></div> -->
+    <div id="gameMenuContainer"
+        style="display: none; position: fixed; flex-direction: column; width: 100%; height: 100%; align-items: center; justify-content: center;">
+        <div
+            style="width: 400px; height: 200px; background-color: rgba(0, 0, 0, 0.8); color: white;  padding: 10px; display:flex;flex-direction: column;align-items: center;">
+            <div style="font-size:2.5em">Game over</div>
+            <div style="margin: 20px;">
+                <button id="restart-button" style="font-size:2.5em">Restart</button>
+            </div>
+        </div>
+        <script>
+            
+        </script>
+    </div>
     <script type="module" src="/src/game.js"></script>
 
 
+
 </body>
+
 
 
 </html>
