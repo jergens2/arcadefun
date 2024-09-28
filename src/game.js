@@ -41,7 +41,12 @@ function preload() {
     this.load.audio('bong3', 'assets/bong3.mp3');
     this.load.audio('zoop', 'assets/zoop.mp3');
     this.load.audio('explosion', 'assets/explosion3.mp3')
+
+
     this.load.image('bomb', 'assets/bomb2.png');
+    this.load.image('mango', 'assets/mango.png');
+    this.load.image('watermelon', 'assets/watermelon.png');
+    this.load.image('coin', 'assets/coin.png');
 }
 
 function create() {
@@ -131,13 +136,27 @@ function playRandomSound(scene) {
 function addHexagon(scene, startX, startY, row, column) {
     var hexagon;
     var isExplosive = false;
-    isExplosive = Math.random() < 0.15; // 20% chance to be true
+    var isMango = false;
+    var isWatermelon = false;
+    var isCoin = false;
+
+    isExplosive = Math.random() < 0.15; // 10% chance to be true
+    isMango = Math.random() < 0.02; 
+    isWatermelon = Math.random() < 0.02; 
+    isCoin = Math.random() < 0.02; 
+
     hexagon = scene.add.graphics({ x: startX, y: startY });
     hexagon.startX = startX;
     hexagon.startY = startY;
     hexagon.row = row;
     hexagon.column = column;
+    
+    hexagon.isMango = isMango;
+    hexagon.isCoin = isCoin;
+    hexagon.isWatermelon = isWatermelon;
+    
     hexagon.isExplosive = isExplosive;
+    
     hexagon.recentlyChecked = false;
     drawHexagon(hexagon, TILE_RADIUS, Phaser.Display.Color.RandomRGB().color); // Draw hexagon
     hexagon.setInteractive(new Phaser.Geom.Polygon(createHexagonPoints(TILE_RADIUS)), Phaser.Geom.Polygon.Contains);
@@ -270,7 +289,7 @@ function clickHexagon(scene, hexagon) {
             const neighbors = getNeighbors(scene, hexagon);
             neighbors.forEach(neighbor => {
                 const neighborsBombs = countBombs(scene, neighbor);
-                if (neighborsBombs === 0 && !neighbor.recentlyChecked) {
+                if (!neighborsBombs.isExplosive && !neighbor.recentlyChecked) {
                     clickHexagon(scene, neighbor);
                 }
             });
@@ -288,6 +307,52 @@ function clickHexagon(scene, hexagon) {
         var image = scene.add.image(hexagon.startX, hexagon.startY, 'bomb');
         image.setOrigin(0.5, 0.5);
         image.setScale(0.5);
+    }
+
+    if (hexagon.isCoin){
+        var image = scene.add.image(hexagon.startX, hexagon.startY, 'coin');
+        image.setOrigin(0.5, 0.5);
+        image.setScale(0.5);
+        scene.tweens.add({
+            targets: image,
+            y: hexagon.startY - 100,  // Move the image upwards (adjust as needed)
+            alpha: 0,  // Fade out the image (alpha from 1 to 0)
+            duration: 3000,  // Animation duration in milliseconds (1 second)
+            ease: 'Power2',  // Easing function for smooth motion
+            onComplete: function() {
+                image.destroy();  // Optionally destroy the image after the animation is complete
+            }
+        });
+    }
+    if(hexagon.isMango){
+        var image = scene.add.image(hexagon.startX, hexagon.startY, 'mango');
+        image.setOrigin(0.5, 0.5);
+        image.setScale(0.5);
+        scene.tweens.add({
+            targets: image,
+            y: hexagon.startY - 100,  // Move the image upwards (adjust as needed)
+            alpha: 0,  // Fade out the image (alpha from 1 to 0)
+            duration: 3000,  // Animation duration in milliseconds (1 second)
+            ease: 'Power2',  // Easing function for smooth motion
+            onComplete: function() {
+                image.destroy();  // Optionally destroy the image after the animation is complete
+            }
+        });
+    }
+    if(hexagon.isWatermelon){
+        var image = scene.add.image(hexagon.startX, hexagon.startY, 'watermelon');
+        image.setOrigin(0.5, 0.5);
+        image.setScale(0.5);
+        scene.tweens.add({
+            targets: image,
+            y: hexagon.startY - 100,  // Move the image upwards (adjust as needed)
+            alpha: 0,  // Fade out the image (alpha from 1 to 0)
+            duration: 3000,  // Animation duration in milliseconds (1 second)
+            ease: 'Power2',  // Easing function for smooth motion
+            onComplete: function() {
+                image.destroy();  // Optionally destroy the image after the animation is complete
+            }
+        });
     }
 }
 
