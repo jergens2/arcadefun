@@ -51,6 +51,8 @@ function preload() {
 
 function create() {
 
+    this.input.mouse.disableContextMenu();
+
     const button = document.getElementById('restart-button');
     button.addEventListener('click', () => {
         const gameMenu = document.getElementById('gameMenuContainer');
@@ -120,18 +122,7 @@ function create() {
     }
 }
 
-function playRandomSounds() {
-    setInterval(() => {
-        playRandomSound();
-    }, 1000);
-}
-
-function playRandomSound(scene) {
-    const sounds = ['boop1', 'gentle_bong1', 'gentle_bong2', 'gentle_bong3', 'bong1', 'bong2', 'bong3'];
-    const randomIndex = Math.floor(Math.random() * sounds.length);
-    const randomSound = sounds[randomIndex];
-    scene.sound.play(randomSound);
-}
+function update() { }
 
 function addHexagon(scene, startX, startY, row, column) {
     var hexagon;
@@ -140,38 +131,72 @@ function addHexagon(scene, startX, startY, row, column) {
     var isWatermelon = false;
     var isCoin = false;
 
-    isExplosive = Math.random() < 0.15; // 10% chance to be true
-    isMango = Math.random() < 0.02; 
-    isWatermelon = Math.random() < 0.02; 
-    isCoin = Math.random() < 0.02; 
+    isExplosive = Math.random() < 0.1;
+    isMango = Math.random() < 0.02;
+    isWatermelon = Math.random() < 0.02;
+    isCoin = Math.random() < 0.02;
 
     hexagon = scene.add.graphics({ x: startX, y: startY });
     hexagon.startX = startX;
     hexagon.startY = startY;
     hexagon.row = row;
     hexagon.column = column;
-    
+
     hexagon.isMango = isMango;
     hexagon.isCoin = isCoin;
     hexagon.isWatermelon = isWatermelon;
-    
+
     hexagon.isExplosive = isExplosive;
-    
+    hexagon.isMarkedExplosive = false;
+    hexagon.canBeMarkedExplosive = true;
+    hexagon.isClicked = false;
+    hexagon.additions = [];
+
     hexagon.recentlyChecked = false;
     drawHexagon(hexagon, TILE_RADIUS, Phaser.Display.Color.RandomRGB().color); // Draw hexagon
     hexagon.setInteractive(new Phaser.Geom.Polygon(createHexagonPoints(TILE_RADIUS)), Phaser.Geom.Polygon.Contains);
-    hexagon.on('pointerdown', function () {
-        if (hexagon.isExplosive) {
-            scene.sound.play('explosion');
-            const gameMenu = document.getElementById('gameMenuContainer');
-            gameMenu.style.display = 'flex';
+    hexagon.on('pointerdown', function (pointer) {
+        if (pointer.rightButtonDown()) {
+            if (hexagon.canBeMarkedExplosive) {
+                playRandomSound(scene);
+                markExplosive(scene, hexagon);
+            }
         } else {
-            playRandomSound(scene);
+            if (hexagon.isMarkedExplosive) {
+                unMarkExplosive(scene, hexagon);
+            }
+            if (hexagon.isExplosive) {
+                gameOverLoss(scene);
+
+            } else {
+                if(!hexagon.isClicked){
+                    playRandomSound(scene);
+                } 
+            }
+            clickHexagon(scene, hexagon);
+            scene.hexagons.forEach(h => h.recentlyChecked = false);
         }
-        clickHexagon(scene, hexagon);
-        scene.hexagons.forEach(h => h.recentlyChecked = false);
+
+        checkVictoryConditions(scene);
     });
     scene.hexagons.push(hexagon);
+}
+
+function gameOverLoss(scene){
+    scene.sound.play('explosion');
+    const endMessage = document.getElementById('endMessage');
+    endMessage.textContent = 'Game Over';
+    const gameMenu = document.getElementById('gameMenuContainer');
+    gameMenu.style.display = 'flex';
+
+
+}
+function gameOverVictory(scene){
+    const endMessage = document.getElementById('endMessage');
+    endMessage.textContent = 'Victory!';
+    const gameMenu = document.getElementById('gameMenuContainer');
+    gameMenu.style.display = 'flex';
+
 }
 
 // Function to draw hexagons
@@ -202,32 +227,7 @@ function createHexagonPoints(radius) {
     return points;
 }
 
-// Function to explode the hexagon and then remove it
-function explodeHexagon(scene, hexagon) {
-    // Animate scale for explosion effect
-    scene.tweens.add({
-        targets: hexagon,
-        scaleX: 0.2, // Increase size to simulate explosion
-        scaleY: 0.2,
-        alpha: 0.5, // Fade out
-        duration: 600, // Duration of explosion
-        ease: 'Power2',
-        onComplete: function () {
-            // hexagon.destroy(); // Remove hexagon from the scene
-            scene.tweens.add({
-                targets: hexagon,
-                scaleX: 1, // Increase size to simulate explosion
-                scaleY: 1,
-                alpha: 1, // Fade out
-                duration: 1600, // Duration of explosion
-                ease: 'Power2',
-                onComplete: function () {
-                    // hexagon.destroy(); // Remove hexagon from the scene
-                }
-            });
-        }
-    });
-}
+
 
 function countBombs(scene, clickedHexagon) {
     let bombCount = 0;
@@ -266,94 +266,133 @@ function getNeighbors(scene, hexagon) {
     return neighbors;
 }
 
+function unMarkExplosive(scene, hexagon) {
+    hexagon.canBeMarkedExplosive = false;
+    hexagon.additions.forEach(addition => {
+        addition.destroy();
+    });
+}
 
-function clickHexagon(scene, hexagon) {
-    var bombCount = countBombs(scene, hexagon);
-    hexagon.recentlyChecked = true;
+function shrinkHexagon(scene, hexagon) {
     scene.tweens.add({
         targets: hexagon,
-        scaleX: 0.2, // Increase size to simulate explosion
+        scaleX: 0.2,
         scaleY: 0.2,
         alpha: 0.5, // Fade out
-        duration: 600, // Duration of explosion
+        duration: 600,
         ease: 'Power2',
         onComplete: function () {
-            // hexagon.destroy(); // Remove hexagon from the scene
+            // hexagon.destroy(); 
 
         }
     });
-    if (!hexagon.isExplosive) {
+}
 
-        if (bombCount === 0) {
-            // bombCount = '';
-            const neighbors = getNeighbors(scene, hexagon);
-            neighbors.forEach(neighbor => {
-                const neighborsBombs = countBombs(scene, neighbor);
-                if (!neighborsBombs.isExplosive && !neighbor.recentlyChecked) {
-                    clickHexagon(scene, neighbor);
-                }
-            });
+function markExplosive(scene, hexagon) {
+    hexagon.isMarkedExplosive = true;
+    hexagon.canBeMarkedExplosive = false;
+    shrinkHexagon(scene, hexagon);
+    var graphics = scene.add.graphics();
+    const radius = TILE_RADIUS * 0.8
+    // Set fill color to orange and draw a filled circle
+    graphics.fillStyle(0xffffff, 0.75);  // Orange background color
+    graphics.fillCircle(hexagon.startX, hexagon.startY, radius);  // Circle at mouse position, radius 50
+    // Set line style for the white outline and draw a white circle
+    graphics.lineStyle(4, 0xFF0000, 1);  // White border with 4px width
+    graphics.strokeCircle(hexagon.startX, hexagon.startY, radius);  // Draw the border
+    var image = scene.add.image(hexagon.startX, hexagon.startY, 'bomb');
+    image.setOrigin(0.5, 0.5);
+    image.setScale(0.3);
+    image.setAlpha(0.5)
+    var text = scene.add.text(hexagon.startX, hexagon.startY, "?",
+        {
+            font: '32px Arial',
+            fill: '#ff0000',
+        });
+    text.setOrigin(0.5, 0.5)
+    hexagon.additions = [graphics, image, text];
+    // checkVictoryConditions(scene);
+}
+
+function clickHexagon(scene, hexagon) {
+    if (!hexagon.isClicked) {
+        var bombCount = countBombs(scene, hexagon);
+        hexagon.recentlyChecked = true;
+        hexagon.canBeMarkedExplosive = false;
+        hexagon.isClicked = true;
+        shrinkHexagon(scene, hexagon);
+        if (!hexagon.isExplosive) {
+            if (bombCount === 0) {
+                // bombCount = '';
+                const neighbors = getNeighbors(scene, hexagon);
+                neighbors.forEach(neighbor => {
+                    const neighborsBombs = countBombs(scene, neighbor);
+                    if (!neighborsBombs.isExplosive && !neighbor.recentlyChecked) {
+                        if(neighbor.isMarkedExplosive){
+                            unMarkExplosive(scene, neighbor);
+                        }
+                        clickHexagon(scene, neighbor);
+                    }
+                });
+            }
+        }
+        if (bombCount > 0) {
+            var text = scene.add.text(hexagon.startX, hexagon.startY, bombCount,
+                {
+                    font: '32px Arial',
+                    fill: '#000000',
+                });
+            text.setOrigin(0.5, 0.5)
+        }
+        if (hexagon.isExplosive) {
+            var image = scene.add.image(hexagon.startX, hexagon.startY, 'bomb');
+            image.setOrigin(0.5, 0.5);
+            image.setScale(0.5);
+        }
+        if (hexagon.isCoin) {
+            var image = scene.add.image(hexagon.startX, hexagon.startY, 'coin');
+            animateImageUp(scene, hexagon, image);
+        }
+        if (hexagon.isMango) {
+            var image = scene.add.image(hexagon.startX, hexagon.startY, 'mango');
+            animateImageUp(scene, hexagon, image);
+        }
+        if (hexagon.isWatermelon) {
+            var image = scene.add.image(hexagon.startX, hexagon.startY, 'watermelon');
+            animateImageUp(scene, hexagon, image);
         }
     }
-    if (bombCount > 0) {
-        var text = scene.add.text(hexagon.startX, hexagon.startY, bombCount,
-            {
-                font: '32px Arial',
-                fill: '#000000',
-            });
-        text.setOrigin(0.5, 0.5)
-    }
-    if (hexagon.isExplosive) {
-        var image = scene.add.image(hexagon.startX, hexagon.startY, 'bomb');
-        image.setOrigin(0.5, 0.5);
-        image.setScale(0.5);
-    }
 
-    if (hexagon.isCoin){
-        var image = scene.add.image(hexagon.startX, hexagon.startY, 'coin');
-        image.setOrigin(0.5, 0.5);
-        image.setScale(0.5);
-        scene.tweens.add({
-            targets: image,
-            y: hexagon.startY - 100,  // Move the image upwards (adjust as needed)
-            alpha: 0,  // Fade out the image (alpha from 1 to 0)
-            duration: 3000,  // Animation duration in milliseconds (1 second)
-            ease: 'Power2',  // Easing function for smooth motion
-            onComplete: function() {
-                image.destroy();  // Optionally destroy the image after the animation is complete
-            }
-        });
+}
+
+function checkVictoryConditions(scene){
+    let allBombsIdentified = true;
+    scene.hexagons.filter(hexagon => hexagon.isExplosive).forEach(hexagon => {
+        if(!hexagon.isMarkedExplosive){
+            allBombsIdentified = false;
+        }
+    });
+
+    if(allBombsIdentified === true){
+        //Victory.
+        console.log("Victory!");
+        gameOverVictory(scene);
     }
-    if(hexagon.isMango){
-        var image = scene.add.image(hexagon.startX, hexagon.startY, 'mango');
-        image.setOrigin(0.5, 0.5);
-        image.setScale(0.5);
-        scene.tweens.add({
-            targets: image,
-            y: hexagon.startY - 100,  // Move the image upwards (adjust as needed)
-            alpha: 0,  // Fade out the image (alpha from 1 to 0)
-            duration: 3000,  // Animation duration in milliseconds (1 second)
-            ease: 'Power2',  // Easing function for smooth motion
-            onComplete: function() {
-                image.destroy();  // Optionally destroy the image after the animation is complete
-            }
-        });
-    }
-    if(hexagon.isWatermelon){
-        var image = scene.add.image(hexagon.startX, hexagon.startY, 'watermelon');
-        image.setOrigin(0.5, 0.5);
-        image.setScale(0.5);
-        scene.tweens.add({
-            targets: image,
-            y: hexagon.startY - 100,  // Move the image upwards (adjust as needed)
-            alpha: 0,  // Fade out the image (alpha from 1 to 0)
-            duration: 3000,  // Animation duration in milliseconds (1 second)
-            ease: 'Power2',  // Easing function for smooth motion
-            onComplete: function() {
-                image.destroy();  // Optionally destroy the image after the animation is complete
-            }
-        });
-    }
+}
+
+function animateImageUp(scene, hexagon, image) {
+    image.setOrigin(0.5, 0.5);
+    image.setScale(0.5);
+    scene.tweens.add({
+        targets: image,
+        y: hexagon.startY - 100,  // Move the image upwards (adjust as needed)
+        alpha: 0,  // Fade out the image (alpha from 1 to 0)
+        duration: 3000,  // Animation duration in milliseconds (1 second)
+        ease: 'Power2',  // Easing function for smooth motion
+        onComplete: function () {
+            image.destroy();  // Optionally destroy the image after the animation is complete
+        }
+    });
 }
 
 function animateHexagon(scene, hexagon, isReversal = false) {
@@ -387,8 +426,42 @@ function animateHexagon(scene, hexagon, isReversal = false) {
 
 }
 
-function getRandomInRange(min, max) {
-    return Math.random() * (max - min) + min;
+function playRandomSounds() {
+    setInterval(() => {
+        playRandomSound();
+    }, 1000);
 }
 
-function update() { }
+function playRandomSound(scene) {
+    const sounds = ['boop1', 'gentle_bong1', 'gentle_bong2', 'gentle_bong3', 'bong1', 'bong2', 'bong3'];
+    const randomIndex = Math.floor(Math.random() * sounds.length);
+    const randomSound = sounds[randomIndex];
+    scene.sound.play(randomSound);
+}
+
+// Function to explode the hexagon and then remove it
+function explodeHexagon(scene, hexagon) {
+    // Animate scale for explosion effect
+    scene.tweens.add({
+        targets: hexagon,
+        scaleX: 0.2, // Increase size to simulate explosion
+        scaleY: 0.2,
+        alpha: 0.5, // Fade out
+        duration: 600, // Duration of explosion
+        ease: 'Power2',
+        onComplete: function () {
+            // hexagon.destroy(); // Remove hexagon from the scene
+            scene.tweens.add({
+                targets: hexagon,
+                scaleX: 1, // Increase size to simulate explosion
+                scaleY: 1,
+                alpha: 1, // Fade out
+                duration: 1600, // Duration of explosion
+                ease: 'Power2',
+                onComplete: function () {
+                    // hexagon.destroy(); // Remove hexagon from the scene
+                }
+            });
+        }
+    });
+}
