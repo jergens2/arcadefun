@@ -40,7 +40,7 @@ function preload() {
     this.load.audio('bong2', 'assets/bong2.mp3');
     this.load.audio('bong3', 'assets/bong3.mp3');
     this.load.audio('zoop', 'assets/zoop.mp3');
-    this.load.audio('explosion', 'assets/explosion3.mp3')
+    this.load.audio('explosion', 'assets/explosion4.mp3')
 
 
     this.load.image('bomb', 'assets/bomb2.png');
@@ -68,8 +68,13 @@ function create() {
     const effectiveRadius = tileRadius + tileBuffer;
     const halfHeight = Math.sqrt(Math.abs(((tileRadius / 2) ** 2) - (tileRadius ** 2))) + (tileBuffer / 2);
     const effectiveHeight = (halfHeight * 2) + tileBuffer;
-    // in the horizontal configuration, the first column is width of 2*radius and each subsequent column adds an additional width of 1.5 * radius
-    // every second column will have minus one height, unless there is additional space at the end.
+    /**
+     * In the "horizontal" configuration of a hexagon grid, meaning the orientation of the hexagon is such that 
+     * the bottom of the hexagon is an edge / line, and is not a point,
+     * 
+     * the first column is width of 2*radius and each subsequent column adds an additional width of 1.5 * radius
+     * every second column will have minus one height, unless there is additional space at the end.
+     */
     let columnsHaveSameHeight = false;
     let currentWidth = 2 * effectiveRadius;
     let actualWidth = currentWidth;
@@ -101,19 +106,15 @@ function create() {
                 //if it is an even column
                 startX = offsetX + effectiveRadius + (column * additionalColWidth);
                 startY = offsetY + effectiveHeight / 2 + (effectiveHeight * row);
-
                 addHexagon(this, startX, startY, row, column);
             } else {
                 //if it is an odd column
                 startX = offsetX + (effectiveRadius * 2) + (column * additionalColWidth) - effectiveRadius;
                 startY = offsetY + effectiveHeight + (effectiveHeight * row);
-
                 if (columnsHaveSameHeight) {
-                    // hexTiles.push(new TileHexagon(startX, startY, tileRadius, column, row));
                     addHexagon(this, startX, startY, row, column);
                 } else {
                     if (row != rowCount - 1) {
-                        // hexTiles.push(new TileHexagon(startX, startY, tileRadius, column, row));
                         addHexagon(this, startX, startY, row, column);
                     }
                 }
